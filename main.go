@@ -6,14 +6,10 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"html/template"
 	"net/http"
-	"reflect"
 	"strings"
 )
 
 var tpl *template.Template
-
-//var db *sql.DB
-//var err error
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
@@ -43,7 +39,7 @@ func main() {
 	})
 
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		id := r.FormValue("id")
+		//id := r.FormValue("id")
 		users := r.FormValue("username")
 		email := r.FormValue("email")
 		password := r.FormValue("password")
@@ -59,14 +55,30 @@ func main() {
 			}
 			account = append(account, a)
 		}
+
+		d, _ := db.Query("select * from users")
+		defer d.Close()
+		var count []accounts
+		for d.Next() {
+			var x accounts
+			err = d.Scan(&x.id, &x.users, &x.email, &x.password)
+			if err != nil {
+				panic(err)
+			}
+			count = append(count, x)
+		}
 		/////
+		id := len(count) + 1
+
 		fmt.Println("e equals: ", e, "  length: ", len(account))
 		if e%2 == 1 && len(account) == 0 {
 			fmt.Println("inserting id: ", id, " username: ", users, " email: ", email, " password: ", password)
 			rows, _ := db.Query("insert into users(id, users, email, password) values (?, ?, ?, ?)", id, users, email, password)
 			defer rows.Close()
+			tpl.ExecuteTemplate(w, "template.html", "Successfully registered")
+		} else {
+			tpl.ExecuteTemplate(w, "template.html", "Username already taken")
 		}
-		tpl.ExecuteTemplate(w, "template.html", "Successfully registered")
 	})
 
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
@@ -118,15 +130,10 @@ func main() {
 		for _, d := range account {
 			hashn := len(d.password)
 			hash := strings.Repeat("*", hashn)
+
 			fmt.Fprintf(w, "<tr>id: %d<br>username: %s<br>email: %s<br>password: %s<br><br></tr>", d.id, d.users, d.email, hash)
 		}
 		fmt.Fprint(w, "</table>")
 	})
 	http.ListenAndServe("localhost:8000", nil)
-
-}
-func getField(v *accounts, field string) string {
-	r := reflect.ValueOf(v)
-	f := reflect.Indirect(r).FieldByName(field)
-	return string(f.Int())
 }
