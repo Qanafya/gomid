@@ -38,6 +38,9 @@ func main() {
 		tpl.ExecuteTemplate(w, "template.html", nil)
 	})
 
+	http.HandleFunc("/prod", func(w http.ResponseWriter, r *http.Request) {
+		tpl.ExecuteTemplate(w, "products.html", nil)
+	})
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		//id := r.FormValue("id")
 		users := r.FormValue("username")
